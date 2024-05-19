@@ -1,8 +1,8 @@
 import requests
 from jsonschema import validate
 
-from schemas import get_users
-from schemas import put_users
+from schemas import get_users, post_login, put_users, list_users, post_create, delayed_user
+
 import json
 
 url = "https://reqres.in/api/"
@@ -45,8 +45,9 @@ def test_delete():
 
 def test_unsuccessful():
     response = requests.post(url + 'login')
-
+    body = response.json()
     assert response.status_code == 400
+    validate(body, post_login)
 
 
 def test_notfound():
@@ -68,3 +69,28 @@ def test_patch_user():
     validate(body, put_users)
     assert body["name"] == "morpheus"
     assert body["job"] == "zion resident"
+
+
+def test_list_user():
+    response = requests.get(url + 'unknown')
+    body = response.json()
+    validate(body, list_users)
+    assert body["per_page"] == 6
+    assert body["page"] == 1
+
+
+def test_create_user():
+    response = requests.post(url + 'users')
+    body = response.json()
+    validate(body, post_create)
+    assert body['id'] != 0
+
+
+def test_delayed_responce():
+    response = requests.get(url + 'users', params={"delay": 3, "page": 1, "per_page": 1, "total": 1})
+
+    body = response.json()
+    validate(body, delayed_user)
+    assert body['data'] == [{"id": 1, "email":
+        "george.bluth@reqres.in", "first_name": "George", "last_name":
+                                 "Bluth", "avatar": "https://reqres.in/img/faces/1-image.jpg"}]
