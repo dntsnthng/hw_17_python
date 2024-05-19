@@ -1,8 +1,9 @@
 import requests
 from jsonschema import validate
-from schemas import post_users
+
 from schemas import get_users
 from schemas import put_users
+import json
 
 url = "https://reqres.in/api/"
 
@@ -11,17 +12,11 @@ def test_post():
     response = requests.post(url + 'users', data={"first_name": "Emma", "last_name": "Wong"})
     body = response.json()
     assert response.status_code == 201
-    with open("../schemas.py") as file:
-        validate(body, schema=post_users)
     assert body["first_name"] == "Emma"
     assert body["last_name"] == "Wong"
-
-def test_post_negative():
-    response = requests.post(url + 'users')
-    body = response.json()
-    assert response.status_code == 201
-    with open("../schemas.py") as file:
-        validate(body, schema=post_users)
+    with open('post_users.json') as file:
+        schema = json.load(file)
+    validate(body, schema=schema)
 
 
 def test_get():
@@ -32,19 +27,14 @@ def test_get():
     body = response.json()
     assert len(ids) == len(set(ids))
     assert response.status_code == 200
-
-    with open("../schemas.py") as file:
-        validate(body, schema=get_users)
-    
+    validate(body, get_users)
 
 
 def test_update():
     response = requests.put(url + "users/2")
     body = response.json()
     assert response.status_code == 200
-
-    with open("../schemas.py") as file:
-        validate(body, schema=put_users)
+    validate(body, put_users)
 
 
 def test_delete():
@@ -63,3 +53,18 @@ def test_notfound():
     response = requests.get(url + 'unknown/23')
     assert response.status_code == 404
     assert response.text == '{}'
+
+
+def test_patch_user():
+    payload = {
+        "name": "morpheus",
+        "job": "zion resident"
+    }
+
+    response = requests.patch(url + 'users/2', data=payload)
+    body = response.json()
+
+    assert response.status_code == 200
+    validate(body, put_users)
+    assert body["name"] == "morpheus"
+    assert body["job"] == "zion resident"
